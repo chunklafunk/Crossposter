@@ -53,27 +53,27 @@ def index():
 
             listing['images'] = images
 
-    return render_template('index.html', listings=listings, mercari_logged_in=session.get('mercari_logged_in', False))
+    return render_template('index.html', listings=listings, mercari_linked=session.get('mercari_linked', False))
 
 
-@app.route('/login/mercari', methods=['POST'])
-def login_mercari():
-    # Simulate successful login
-    print("🔐 User logged into Mercari session", flush=True)
-    session['mercari_logged_in'] = True
-    return redirect(url_for('index'))
+@app.route('/linked-accounts', methods=['GET', 'POST'])
+def linked_accounts():
+    if request.method == 'POST':
+        if request.form.get('platform') == 'mercari':
+            session['mercari_linked'] = True
+    return render_template('linked_accounts.html', mercari_linked=session.get('mercari_linked', False))
 
 
-@app.route('/logout/mercari', methods=['POST'])
-def logout_mercari():
-    session.pop('mercari_logged_in', None)
-    return redirect(url_for('index'))
+@app.route('/unlink/mercari', methods=['POST'])
+def unlink_mercari():
+    session.pop('mercari_linked', None)
+    return redirect(url_for('linked_accounts'))
 
 
 @app.route('/crosspost/mercari/<item_id>', methods=['POST'])
 def crosspost_mercari(item_id):
-    if not session.get('mercari_logged_in'):
-        return "Not logged in to Mercari", 403
+    if not session.get('mercari_linked'):
+        return "Mercari not linked", 403
 
     filepath = os.path.join(UPLOAD_FOLDER, 'eBay-active-listings.csv')
     df = pd.read_csv(filepath)
