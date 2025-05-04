@@ -1,58 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>eBay Crossposter</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-        h1 { text-align: center; }
-        form { margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        th, td { padding: 10px; border: 1px solid #ddd; vertical-align: top; }
-        img { max-width: 100px; height: auto; }
-        button { padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>eBay Crossposter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8f9fa;
+      padding: 2rem;
+      text-align: center;
+    }
+    #image-viewer {
+      position: relative;
+      display: inline-block;
+      max-width: 90vw;
+      max-height: 90vh;
+      margin-top: 1rem;
+    }
+    #image-viewer img {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2rem;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+    #prev-btn { left: -50px; }
+    #next-btn { right: -50px; }
+    #loading { margin-top: 2rem; font-weight: bold; }
+    #title { margin-top: 1.5rem; font-size: 1.1rem; color: #333; }
+  </style>
 </head>
 <body>
-    <h1>eBay Listings</h1>
 
-    <form method="POST" enctype="multipart/form-data">
-        <label><strong>Upload CSV File:</strong></label><br><br>
-        <input type="file" name="csv_file" accept=".csv" required>
-        <button type="submit">Upload</button>
-    </form>
+  <h1>eBay Listing Image Viewer</h1>
+  <input type="text" id="item-id" placeholder="Enter eBay Item ID" />
+  <button onclick="loadImages()">Load Images</button>
 
-    {% if listings %}
-    <table>
-        <tr>
-            <th>Photo</th>
-            <th>Title</th>
-            <th>Price</th>
-            <th>Condition</th>
-            <th>Quantity</th>
-            <th>Description</th>
-            <th>Action</th>
-        </tr>
-        {% for item in listings %}
-        <tr>
-            <td>
-                <img 
-                    src="{{ item['PhotoURL']|replace('http://', 'https://') if item['PhotoURL'] else 'https://via.placeholder.com/100?text=No+Image' }}" 
-                    alt="Photo"
-                    referrerpolicy="no-referrer"
-                >
-            </td>
-            <td>{{ item['Title'] }}</td>
-            <td>${{ item['Start price'] }}</td>
-            <td>{{ item['Condition'] }}</td>
-            <td>{{ item['Available quantity'] }}</td>
-            <td>{{ item['Title'] }}</td>
-            <td><button onclick="alert('Cross-post {{ item['Title'] }}')">Cross-post</button></td>
-        </tr>
-        {% endfor %}
-    </table>
-    {% else %}
-    <p><em>No listings loaded yet. Upload a CSV to get started.</em></p>
-    {% endif %}
+  <div id="loading" style="display:none;">🔄 Fetching images...</div>
+  <div id="image-viewer" style="display:none;">
+    <button id="prev-btn" class="nav-arrow" onclick="showImage(currentIndex - 1)">⟨</button>
+    <img id="carousel-image" src="" alt="eBay Item Image" />
+    <button id="next-btn" class="nav-arrow" onclick="showImage(currentIndex + 1)">⟩</button>
+    <div id="title"></div>
+  </div>
+
+  <script>
+    let images = [];
+    let currentIndex = 0;
+
+    function loadImages() {
+      const itemId = document.getElementById("item-id").value.trim();
+      if (!itemId) return alert("Enter a valid item ID");
+
+      images = [];
+      currentIndex = 0;
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("image-viewer").style.display = "none";
+
+      fetch(`/api/images?item=${itemId}`)
+        .then(res => res.json())
+        .then(data => {
+          images = data.image_urls || [];
+          if (images.length === 0) {
+            alert("No images found for that item.");
+            document.getElementById("loading").style.display = "none";
+            return;
+          }
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("image-viewer").style.display = "inline-block";
+          showImage(0);
+        })
+        .catch(err => {
+          console.error(err);
+          alert("Failed to fetch images.");
+          document.getElementById("loading").style.display = "none";
+        });
+    }
+
+    function showImage(index) {
+      if (images.length === 0) return;
+      currentIndex = (index + images.length) % images.length;
+      const img = document.getElementById("carousel-image");
+      img.src = images[currentIndex];
+      document.getElementById("title").textContent = `Image ${currentIndex + 1} of ${images.length}`;
+    }
+  </script>
+
 </body>
 </html>
