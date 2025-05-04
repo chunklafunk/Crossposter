@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session
 import os
 import pandas as pd
 import requests
 import json
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key')
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -52,11 +53,28 @@ def index():
 
             listing['images'] = images
 
-    return render_template('index.html', listings=listings)
+    return render_template('index.html', listings=listings, mercari_logged_in=session.get('mercari_logged_in', False))
+
+
+@app.route('/login/mercari', methods=['POST'])
+def login_mercari():
+    # Simulate successful login
+    print("🔐 User logged into Mercari session", flush=True)
+    session['mercari_logged_in'] = True
+    return redirect(url_for('index'))
+
+
+@app.route('/logout/mercari', methods=['POST'])
+def logout_mercari():
+    session.pop('mercari_logged_in', None)
+    return redirect(url_for('index'))
 
 
 @app.route('/crosspost/mercari/<item_id>', methods=['POST'])
 def crosspost_mercari(item_id):
+    if not session.get('mercari_logged_in'):
+        return "Not logged in to Mercari", 403
+
     filepath = os.path.join(UPLOAD_FOLDER, 'eBay-active-listings.csv')
     df = pd.read_csv(filepath)
     listings = df.to_dict(orient='records')
