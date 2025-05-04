@@ -1,65 +1,98 @@
-from flask import Flask, render_template, request, make_response
-import pandas as pd
+from flask import Flask, request, render_template, jsonify
 import os
-import requests
+import json
+import time
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
-UPLOAD_FOLDER = 'uploads'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-RAILWAY_API_BASE = "https://web-production-0646.up.railway.app"
+def scrape_ebay_images(item_number):
+    url = f"https://www.ebay.com/itm/{item_number}"
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--blink-settings=imagesEnabled=true')
+    options.add_argument('--disable-background-networking')
+    options.add_argument('--disable-software-rasterizer')
+    options.add_argument('--window-size=1200x800')
+    options.binary_location = '/usr/bin/chromium'
 
-def get_image_url(item_number):
     try:
-        url = f"{RAILWAY_API_BASE}/api/images?item={item_number}"
-        print(f"[{item_number}] → {url}", flush=True)
-        res = requests.get(url, timeout=20)
-        if res.status_code == 200:
-            images = res.json().get("image_urls", [])
-            if images:
-                print(f"[{item_number}] ✅ Got {len(images)} images", flush=True)
-                return images[0]  # Only return first image for now
-            else:
-                print(f"[{item_number}] ⚠️ No images found", flush=True)
-        else:
-            print(f"[{item_number}] ❌ API error {res.status_code}: {res.text}", flush=True)
+        print(f"🌐 Opening eBay item: {item_number}", flush=True)
+        service = Service(executable_path='/usr/bin/chromedriver')
+        driver = webdriver.Chrome(service=service, options=options)
+        driver.get(url)
+
+        time.sleep(5)
+        html = driver.page_source
+        driver.quit()
+
+        soup = BeautifulSoup(html, 'html.parser')
+        scripts = soup.find_all('script')
+        print(f"🔍 Found {len(scripts)} <script> blocks", flush=True)
+
+        media_list = []
+        for i, script in enumerate(scripts):
+            if script.string and 'mediaList' in script.string:
+                print(f"✅ Found mediaList in script #{i}", flush=True)
+                text = script.string
+                start = text.find('mediaList') + len('mediaList') + 1
+                start_bracket = text.find('[', start)
+                end = start_bracket + 1
+                bracket_count = 1
+                while end < len(text) and bracket_count > 0:
+                    if text[end] == '[':
+                        bracket_count += 1
+                    elif text[end] == ']':
+                        bracket_count -= 1
+                    end += 1
+                raw_json = text[start_bracket:end]
+                try:
+                    media_list = json.loads(raw_json)
+                    break
+                except Exception as e:
+                    print(f"⚠️ JSON parse failed: {e}", flush=True)
+                    continue
+
+        image_urls = []
+        for media in media_list:
+            try:
+                url = media["image"]["zoomImg"]["URL"]
+                if url:
+                    image_urls.append(url)
+            except KeyError:
+                continue
+
+        print(f"🖼️ Returning {len(image_urls)} image URLs", flush=True)
+        return image_urls
+
     except Exception as e:
-        print(f"[{item_number}] ❌ Exception: {e}", flush=True)
-    return ""
+        print(f"❌ Scraper exception: {e}", flush=True)
+        return [f"Error: {str(e)}"]
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    listings = []
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'eBay-active-listings.csv')
+    return render_template('index.html')
 
-    if request.method == 'POST':
-        file = request.files['csv_file']
-        if file:
-            file.save(filepath)
-            print(f"📁 Saved uploaded CSV to {filepath}", flush=True)
+@app.route('/api/images', methods=['GET'])
+def get_images():
+    item_number = request.args.get('item')
+    if not item_number:
+        return jsonify({'error': 'Missing item parameter'}), 400
 
-            df = pd.read_csv(filepath)
-            if 'Item number' in df.columns:
-                print("🔍 Fetching images from Railway API...", flush=True)
-                df['PhotoURL'] = df['Item number'].astype(str).apply(get_image_url)
-                df.to_csv(filepath, index=False)
-                print(f"✅ Updated CSV saved to {filepath}", flush=True)
+    print(f"\n🚀 /api/images?item={item_number}", flush=True)
+    image_urls = scrape_ebay_images(item_number)
 
-            df = df.fillna('')
-            listings = df.to_dict(orient='records')
+    if image_urls and isinstance(image_urls[0], str) and image_urls[0].startswith("Error"):
+        return jsonify({'error': image_urls[0]}), 500
 
-    else:
-        try:
-            df = pd.read_csv(filepath)
-            listings = df.fillna('').to_dict(orient='records')
-        except Exception as e:
-            print(f"⚠️ No existing CSV to load: {e}", flush=True)
-            listings = []
-
-    rendered = render_template('index.html', listings=listings)
-    response = make_response(rendered)
-    return response
+    return jsonify({'item': item_number, 'image_urls': image_urls})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000)
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host='0.0.0.0', port=port)
