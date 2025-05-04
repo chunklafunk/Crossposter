@@ -36,7 +36,7 @@
         {% for item in listings %}
         <tr>
             <td>
-                <img src="{{ item['PhotoURL'] if item['PhotoURL'] else 'https://via.placeholder.com/100?text=No+Image' }}" alt="Photo">
+                <img src="{{ item['PhotoURL']|replace('http://', 'https://') if item['PhotoURL'] else 'https://via.placeholder.com/100?text=No+Image' }}" alt="Photo">
             </td>
             <td>{{ item['Title'] }}</td>
             <td>${{ item['Start price'] }}</td>
