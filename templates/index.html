@@ -59,6 +59,12 @@
   <button type="submit">Upload</button>
 </form>
 
+<form method="POST" action="/logout/mercari" style="margin-top: 10px;">
+  {% if mercari_logged_in %}
+    <button type="submit">Logout of Mercari</button>
+  {% endif %}
+</form>
+
 {% if listings %}
 <table>
   <thead>
@@ -92,9 +98,15 @@
       <td>{{ listing.Condition or listing.condition }}</td>
       <td>{{ listing.Quantity or listing.quantity }}</td>
       <td>
+        {% if mercari_logged_in %}
         <form method="POST" action="/crosspost/mercari/{{ listing['Item number'] or listing['Item ID'] or listing['item_id'] }}">
           <button type="submit">Crosspost to Mercari</button>
         </form>
+        {% else %}
+        <form method="POST" action="/login/mercari">
+          <button type="submit">Log Into Mercari</button>
+        </form>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}
