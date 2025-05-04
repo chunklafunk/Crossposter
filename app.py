@@ -2,6 +2,7 @@ from flask import Flask, render_template, request
 import os
 import pandas as pd
 import requests
+import json
 
 app = Flask(__name__)
 UPLOAD_FOLDER = 'uploads'
@@ -52,6 +53,25 @@ def index():
             listing['images'] = images
 
     return render_template('index.html', listings=listings)
+
+
+@app.route('/crosspost/mercari/<item_id>', methods=['POST'])
+def crosspost_mercari(item_id):
+    filepath = os.path.join(UPLOAD_FOLDER, 'eBay-active-listings.csv')
+    df = pd.read_csv(filepath)
+    listings = df.to_dict(orient='records')
+
+    listing = next((l for l in listings if str(l.get('Item number') or l.get('Item ID') or l.get('item_id')) == item_id), None)
+
+    if not listing:
+        return f"Listing {item_id} not found", 404
+
+    # Mock crosspost logic
+    print(f"\n🚀 [MOCK] Crossposting to Mercari: {item_id}", flush=True)
+    print(json.dumps(listing, indent=2), flush=True)
+
+    return f"✅ Listing {item_id} mock-posted to Mercari!"
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
