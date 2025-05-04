@@ -25,24 +25,24 @@ def index():
 
         for listing in listings:
             item_id = str(listing.get('Item ID') or listing.get('ItemID') or listing.get('item_id') or '').strip()
-            print(f"\n📦 Item ID: {item_id}")
+            print(f"\n📦 Item ID: {item_id}", flush=True)
 
             images = []
             if item_id:
                 try:
                     api_url = f"{RAILWAY_API_BASE}?item={item_id}"
-                    print(f"🌐 Fetching from: {api_url}")
+                    print(f"🌐 Fetching from: {api_url}", flush=True)
                     res = requests.get(api_url, timeout=20)
-                    print(f"📡 Status: {res.status_code}")
-                    print(f"📄 Raw Response: {res.text[:300]}...")  # Only show first 300 chars
+                    print(f"📡 Status: {res.status_code}", flush=True)
+                    print(f"📄 Raw Response: {res.text[:300]}...", flush=True)
                     res.raise_for_status()
                     data = res.json()
                     images = data.get('image_urls', [])
-                    print(f"🖼️ Found {len(images)} images")
+                    print(f"🖼️ Found {len(images)} images", flush=True)
                 except Exception as e:
-                    print(f"❌ Error for {item_id}: {e}")
+                    print(f"❌ Error for {item_id}: {e}", flush=True)
             else:
-                print("⚠️ No item ID found in this row.")
+                print("⚠️ No item ID found in this row.", flush=True)
 
             listing['images'] = images
 
