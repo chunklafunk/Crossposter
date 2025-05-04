@@ -1,5 +1,7 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, render_template, request, redirect, jsonify
 import os
+import csv
+import pandas as pd
 import json
 import time
 from selenium import webdriver
@@ -8,6 +10,8 @@ from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
 
 app = Flask(__name__)
+UPLOAD_FOLDER = 'uploads'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def scrape_ebay_images(item_number):
     url = f"https://www.ebay.com/itm/{item_number}"
@@ -16,30 +20,21 @@ def scrape_ebay_images(item_number):
     options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--blink-settings=imagesEnabled=true')
-    options.add_argument('--disable-background-networking')
-    options.add_argument('--disable-software-rasterizer')
     options.add_argument('--window-size=1200x800')
     options.binary_location = '/usr/bin/chromium'
 
     try:
-        print(f"🌐 Opening eBay item: {item_number}", flush=True)
         service = Service(executable_path='/usr/bin/chromedriver')
         driver = webdriver.Chrome(service=service, options=options)
         driver.get(url)
-
-        time.sleep(5)
+        time.sleep(4)
         html = driver.page_source
         driver.quit()
 
         soup = BeautifulSoup(html, 'html.parser')
         scripts = soup.find_all('script')
-        print(f"🔍 Found {len(scripts)} <script> blocks", flush=True)
-
-        media_list = []
-        for i, script in enumerate(scripts):
+        for script in scripts:
             if script.string and 'mediaList' in script.string:
-                print(f"✅ Found mediaList in script #{i}", flush=True)
                 text = script.string
                 start = text.find('mediaList') + len('mediaList') + 1
                 start_bracket = text.find('[', start)
@@ -52,46 +47,37 @@ def scrape_ebay_images(item_number):
                         bracket_count -= 1
                     end += 1
                 raw_json = text[start_bracket:end]
-                try:
-                    media_list = json.loads(raw_json)
-                    break
-                except Exception as e:
-                    print(f"⚠️ JSON parse failed: {e}", flush=True)
-                    continue
-
-        image_urls = []
-        for media in media_list:
-            try:
-                url = media["image"]["zoomImg"]["URL"]
-                if url:
-                    image_urls.append(url)
-            except KeyError:
-                continue
-
-        print(f"🖼️ Returning {len(image_urls)} image URLs", flush=True)
-        return image_urls
-
+                media_list = json.loads(raw_json)
+                urls = []
+                for media in media_list:
+                    try:
+                        url = media["image"]["zoomImg"]["URL"]
+                        if url:
+                            urls.append(url)
+                    except KeyError:
+                        continue
+                return urls
     except Exception as e:
-        print(f"❌ Scraper exception: {e}", flush=True)
-        return [f"Error: {str(e)}"]
+        return []
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    return render_template('index.html')
+    listings = []
+    if request.method == 'POST':
+        file = request.files.get('csv')
+        if not file:
+            return "No file uploaded", 400
+        filepath = os.path.join(UPLOAD_FOLDER, 'eBay-active-listings.csv')
+        file.save(filepath)
 
-@app.route('/api/images', methods=['GET'])
-def get_images():
-    item_number = request.args.get('item')
-    if not item_number:
-        return jsonify({'error': 'Missing item parameter'}), 400
+        df = pd.read_csv(filepath)
+        listings = df.to_dict(orient='records')
+        for listing in listings:
+            item_id = str(listing.get('Item ID') or listing.get('ItemID') or listing.get('item_id'))
+            images = scrape_ebay_images(item_id)
+            listing['images'] = images
 
-    print(f"\n🚀 /api/images?item={item_number}", flush=True)
-    image_urls = scrape_ebay_images(item_number)
-
-    if image_urls and isinstance(image_urls[0], str) and image_urls[0].startswith("Error"):
-        return jsonify({'error': image_urls[0]}), 500
-
-    return jsonify({'item': item_number, 'image_urls': image_urls})
+    return render_template('index.html', listings=listings)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8000))
