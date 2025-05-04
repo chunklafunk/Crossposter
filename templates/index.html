@@ -90,4 +90,43 @@
         </div>
       </td>
       <td>{{ listing.Title or listing.title }}</td>
-      <td>{{ listing.Price or listing
+      <td>{{ listing.Price or listing.price }}</td>
+      <td>{{ listing.Condition or listing.condition }}</td>
+      <td>{{ listing.Quantity or listing.quantity }}</td>
+      <td>
+        {% if mercari_linked %}
+        <form method="POST" action="/crosspost/mercari/{{ listing['Item number'] or listing['Item ID'] or listing['item_id'] }}">
+          <button type="submit">Crosspost to Mercari</button>
+        </form>
+        {% else %}
+        <form method="POST" action="/linked-accounts">
+          <button type="submit">Log Into Mercari</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<script>
+  const imageMap = {};
+  {% for listing in listings %}
+    imageMap[{{ loop.index }}] = {{ listing.images|tojson }};
+  {% endfor %}
+
+  const currentIndexes = {};
+  function navigate(rowId, direction) {
+    if (!imageMap[rowId]) return;
+    currentIndexes[rowId] = (currentIndexes[rowId] || 0) + direction;
+    const total = imageMap[rowId].length;
+    if (currentIndexes[rowId] >= total) currentIndexes[rowId] = 0;
+    if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
+    const imgTag = document.getElementById('img-' + rowId);
+    imgTag.src = imageMap[rowId][currentIndexes[rowId]];
+  }
+</script>
+
+</body>
+</html>
