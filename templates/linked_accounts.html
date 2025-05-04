@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Linked Accounts</title>
+</head>
+<body>
+
+<h1>Linked Accounts</h1>
+
+<form method="POST">
+  {% if mercari_linked %}
+    <p>✅ Mercari is linked.</p>
+    <form method="POST" action="/unlink/mercari">
+      <button type="submit">Unlink Mercari</button>
+    </form>
+  {% else %}
+    <p>❌ Mercari not linked.</p>
+    <input type="hidden" name="platform" value="mercari" />
+    <button type="submit">Link Mercari Account</button>
+  {% endif %}
+</form>
+
+<br />
+<a href="/">← Back to Listings</a>
+
+</body>
+</html>
