@@ -24,7 +24,12 @@ def index():
         listings = df.to_dict(orient='records')
 
         for listing in listings:
-            item_id = str(listing.get('Item ID') or listing.get('ItemID') or listing.get('item_id') or '').strip()
+            item_id = str(
+                listing.get('Item number') or
+                listing.get('Item ID') or
+                listing.get('ItemID') or
+                listing.get('item_id') or ''
+            ).strip()
             print(f"\n📦 Item ID: {item_id}", flush=True)
 
             images = []
