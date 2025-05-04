@@ -4,49 +4,20 @@
   <meta charset="UTF-8" />
   <title>eBay Listings</title>
   <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      background: #fff;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 12px;
-      border: 1px solid #ccc;
-      text-align: left;
-      vertical-align: top;
-    }
-    img {
-      max-width: 100px;
-      max-height: 100px;
-      border-radius: 6px;
-    }
-    .carousel {
-      position: relative;
-      display: inline-block;
-    }
-    .carousel img {
-      display: block;
-    }
+    body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+    table { border-collapse: collapse; width: 100%; background: #fff; margin-top: 20px; }
+    th, td { padding: 12px; border: 1px solid #ccc; text-align: left; vertical-align: top; }
+    img { max-width: 100px; max-height: 100px; border-radius: 6px; }
+    .carousel { position: relative; display: inline-block; }
+    .carousel img { display: block; }
     .carousel button {
-      position: absolute;
-      top: 40%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      cursor: pointer;
-      border-radius: 4px;
+      position: absolute; top: 40%; transform: translateY(-50%);
+      font-size: 1.2rem; background: rgba(0, 0, 0, 0.6); color: white;
+      border: none; padding: 4px 8px; cursor: pointer; border-radius: 4px;
     }
     .prev-btn { left: 0; }
     .next-btn { right: 0; }
+    .action-btn { margin-top: 8px; padding: 4px 10px; font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -95,12 +66,10 @@
       <td>{{ listing.Quantity or listing.quantity }}</td>
       <td>
         {% if mercari_linked %}
-        <form method="POST" action="/crosspost/mercari/{{ listing['Item number'] or listing['Item ID'] or listing['item_id'] }}">
-          <button type="submit">Crosspost to Mercari</button>
-        </form>
+        <button class="action-btn" onclick='sendToExtension({{ listing | tojson | safe }})'>Post via Extension</button>
         {% else %}
         <form method="POST" action="/linked-accounts">
-          <button type="submit">Log Into Mercari</button>
+          <button type="submit" class="action-btn">Log Into Mercari</button>
         </form>
         {% endif %}
       </td>
@@ -125,6 +94,20 @@
     if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
     const imgTag = document.getElementById('img-' + rowId);
     imgTag.src = imageMap[rowId][currentIndexes[rowId]];
+  }
+
+  function sendToExtension(listing) {
+    const message = {
+      type: "CROSSPOST_TO_MERCARI",
+      payload: {
+        title: listing.Title || listing.title || "",
+        price: listing.Price || listing.price || "",
+        description: listing.Description || listing.description || "Posted from Crossposter",
+        images: listing.images || []
+      }
+    };
+    console.log("[Crossposter] Sending listing to extension", message);
+    window.postMessage(message, "*");
   }
 </script>
 
