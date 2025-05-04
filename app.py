@@ -40,8 +40,6 @@ def index():
             if 'Item number' in df.columns:
                 print("🔍 Fetching images from Railway API...", flush=True)
                 df['PhotoURL'] = df['Item number'].astype(str).apply(get_image_url)
-
-                # Save updated CSV with image links
                 df.to_csv(filepath, index=False)
                 print(f"✅ Updated CSV saved to {filepath}", flush=True)
 
@@ -58,7 +56,10 @@ def index():
 
     rendered = render_template('index.html', listings=listings)
     response = make_response(rendered)
-    response.headers['Content-Security-Policy'] = "default-src * 'unsafe-inline' data: blob:;"
+
+    # 🔧 REMOVE OR RELAX THE CSP HEADER TO ALLOW EBAY IMAGES
+    # response.headers['Content-Security-Policy'] = "default-src * data: blob: 'unsafe-inline' 'unsafe-eval';"
+
     return response
 
 if __name__ == '__main__':
