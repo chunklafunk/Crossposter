@@ -59,11 +59,7 @@
   <button type="submit">Upload</button>
 </form>
 
-<form method="POST" action="/logout/mercari" style="margin-top: 10px;">
-  {% if mercari_logged_in %}
-    <button type="submit">Logout of Mercari</button>
-  {% endif %}
-</form>
+<a href="/linked-accounts" style="display:block; margin-top: 10px;">Manage Linked Accounts</a>
 
 {% if listings %}
 <table>
@@ -94,43 +90,4 @@
         </div>
       </td>
       <td>{{ listing.Title or listing.title }}</td>
-      <td>{{ listing.Price or listing.price }}</td>
-      <td>{{ listing.Condition or listing.condition }}</td>
-      <td>{{ listing.Quantity or listing.quantity }}</td>
-      <td>
-        {% if mercari_logged_in %}
-        <form method="POST" action="/crosspost/mercari/{{ listing['Item number'] or listing['Item ID'] or listing['item_id'] }}">
-          <button type="submit">Crosspost to Mercari</button>
-        </form>
-        {% else %}
-        <form method="POST" action="/login/mercari">
-          <button type="submit">Log Into Mercari</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
-<script>
-  const imageMap = {};
-  {% for listing in listings %}
-    imageMap[{{ loop.index }}] = {{ listing.images|tojson }};
-  {% endfor %}
-
-  const currentIndexes = {};
-  function navigate(rowId, direction) {
-    if (!imageMap[rowId]) return;
-    currentIndexes[rowId] = (currentIndexes[rowId] || 0) + direction;
-    const total = imageMap[rowId].length;
-    if (currentIndexes[rowId] >= total) currentIndexes[rowId] = 0;
-    if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
-    const imgTag = document.getElementById('img-' + rowId);
-    imgTag.src = imageMap[rowId][currentIndexes[rowId]];
-  }
-</script>
-
-</body>
-</html>
+      <td>{{ listing.Price or listing
