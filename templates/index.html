@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>eBay Crossposter</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+        h1 { text-align: center; }
+        form { margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { padding: 10px; border: 1px solid #ddd; vertical-align: top; }
+        img { max-width: 100px; height: auto; }
+        button { padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>eBay Listings</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <label><strong>Upload CSV File:</strong></label><br><br>
+        <input type="file" name="csv_file" accept=".csv" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    {% if listings %}
+    <table>
+        <tr>
+            <th>Photo</th>
+            <th>Title</th>
+            <th>Price</th>
+            <th>Condition</th>
+            <th>Quantity</th>
+            <th>Description</th>
+            <th>Action</th>
+        </tr>
+        {% for item in listings %}
+        <tr>
+            <td>
+                <img src="{{ item['PhotoURL'] if item['PhotoURL'] else 'https://via.placeholder.com/100?text=No+Image' }}" alt="Photo">
+            </td>
+            <td>{{ item['Title'] }}</td>
+            <td>${{ item['Start price'] }}</td>
+            <td>{{ item['Condition'] }}</td>
+            <td>{{ item['Available quantity'] }}</td>
+            <td>{{ item['Title'] }}</td>
+            <td><button onclick="alert('Cross-post {{ item['Title'] }}')">Cross-post</button></td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p><em>No listings loaded yet. Upload a CSV to get started.</em></p>
+    {% endif %}
+</body>
+</html>
