@@ -12,13 +12,16 @@ RAILWAY_API_BASE = "https://web-production-0646.up.railway.app"
 
 def get_image_url(item_number):
     try:
-        url = f"{RAILWAY_API_BASE}/api/image?item={item_number}"
+        url = f"{RAILWAY_API_BASE}/api/images?item={item_number}"
         print(f"[{item_number}] → {url}", flush=True)
         res = requests.get(url, timeout=20)
         if res.status_code == 200:
-            image_url = res.json().get("image_url", "")
-            print(f"[{item_number}] ✅ {image_url}", flush=True)
-            return image_url
+            images = res.json().get("image_urls", [])
+            if images:
+                print(f"[{item_number}] ✅ Got {len(images)} images", flush=True)
+                return images[0]  # Only return first image for now
+            else:
+                print(f"[{item_number}] ⚠️ No images found", flush=True)
         else:
             print(f"[{item_number}] ❌ API error {res.status_code}: {res.text}", flush=True)
     except Exception as e:
@@ -56,10 +59,6 @@ def index():
 
     rendered = render_template('index.html', listings=listings)
     response = make_response(rendered)
-
-    # 🔧 REMOVE OR RELAX THE CSP HEADER TO ALLOW EBAY IMAGES
-    # response.headers['Content-Security-Policy'] = "default-src * data: blob: 'unsafe-inline' 'unsafe-eval';"
-
     return response
 
 if __name__ == '__main__':
