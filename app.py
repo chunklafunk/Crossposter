@@ -63,3 +63,5 @@ def generate_mercari_csv():
     output_path = os.path.join(UPLOAD_FOLDER, 'mercari_output.csv')
     df.to_csv(output_path, index=False)
     return send_file(output_path, as_attachment=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
