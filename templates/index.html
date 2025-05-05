@@ -3,37 +3,47 @@
 <head>
     <title>Crossposter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script>
+    function sendToExtension() {
+        window.postMessage({
+            type: 'MERCARI_UPLOAD_TRIGGER',
+            csvUrl: '{{ url_for("download_mercari_csv") }}'
+        }, '*');
+    }
+    </script>
 </head>
 <body class="container mt-4">
 
-<h2>Imported eBay Listings</h2>
+<h2>Imported Listings</h2>
 
 {% if listings %}
-    <ul class="list-group mb-3">
-        {% for item in listings %}
-            <li class="list-group-item">
-                <strong>{{ item.title }}</strong><br>
-                Price: ${{ item.price }}<br>
-                <small>{{ item.description }}</small>
-            </li>
-        {% endfor %}
-    </ul>
-
-    <form action="/generate_mercari_csv">
-        <button type="submit" class="btn btn-primary">Download Mercari Bulk CSV</button>
-    </form>
-{% else %}
-    <p>No listings found. Upload a CSV first.</p>
-{% endif %}
-
-<hr>
-<form method="post" action="/upload_csv" enctype="multipart/form-data">
-    <div class="mb-3">
-        <label for="file" class="form-label">Upload eBay CSV</label>
-        <input class="form-control" type="file" name="file" accept=".csv" required>
+    {% for item in listings %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ item.title }}</h5>
+            <p class="card-text">{{ item.description }}</p>
+            <div id="carousel{{ loop.index }}" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for img in item.image_urls %}
+                    <div class="carousel-item {% if loop.index0 == 0 %}active{% endif %}">
+                        <img src="{{ img }}" class="d-block w-100" style="max-height:300px;object-fit:contain;">
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ loop.index }}" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ loop.index }}" data-bs-slide="next">
+                    <span class="carousel-control-next-icon"></span>
+                </button>
+            </div>
+        </div>
     </div>
-    <button class="btn btn-success">Upload CSV</button>
-</form>
+    {% endfor %}
 
-</body>
-</html>
+    <div class="d-flex gap-3 mb-5">
+        <a href="{{ url_for('download_mercari_csv') }}" class="btn btn-primary">Download Mercari CSV</a>
+        <button onclick="sendToExtension()" class="btn btn-success">Upload to Mercari</button>
+    </div>
+{% else %}
+    <p>No listings found. Upload a CSV.</p
