@@ -109,14 +109,8 @@
       }
     };
 
-    // Send message to background script in extension
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage(message, (response) => {
-        console.log("Extension response:", response);
-      });
-    } else {
-      console.warn("Chrome extension messaging not available");
-    }
+    console.log("[Crossposter] Sending message from Flask page:", message);
+    window.postMessage(message, "*");
   }
 </script>
 
