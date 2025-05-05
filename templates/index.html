@@ -66,7 +66,7 @@
       <td>{{ listing.Quantity or listing.quantity }}</td>
       <td>
         {% if mercari_linked %}
-        <button class="action-btn" onclick='sendToExtension({{ listing | tojson | safe }})' type="button">
+        <button class="action-btn" type="button" onclick='sendToExtension({{ listing | tojson | safe }})'>
           Post via Extension
         </button>
         {% else %}
@@ -100,16 +100,23 @@
 
   function sendToExtension(listing) {
     const message = {
-      type: "CROSSPOST_TO_MERCARI",
+      type: "POST_LISTING_TO_MERCARI",
       payload: {
         title: listing.Title || listing.title || "",
         price: listing.Price || listing.price || "",
-        description: listing.Description || listing.description || "Posted from Crossposter",
+        description: listing.Description || listing.description || "Posted via Crossposter",
         images: listing.images || []
       }
     };
-    console.log("[Crossposter] Sending listing to extension", message);
-    window.postMessage(message, "*");
+
+    // Send message to background script in extension
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage(message, (response) => {
+        console.log("Extension response:", response);
+      });
+    } else {
+      console.warn("Chrome extension messaging not available");
+    }
   }
 </script>
 
