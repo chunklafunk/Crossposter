@@ -66,7 +66,10 @@
       <td>{{ listing.Quantity or listing.quantity }}</td>
       <td>
         {% if mercari_linked %}
-        <button class="action-btn" type="button" onclick='sendToExtension({{ listing | tojson | safe }})'>
+        <button class="action-btn"
+                type="button"
+                data-listing='{{ listing | tojson | safe }}'
+                onclick="sendBtnListing(this)">
           Post via Extension
         </button>
         {% else %}
@@ -96,6 +99,11 @@
     if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
     const imgTag = document.getElementById('img-' + rowId);
     imgTag.src = imageMap[rowId][currentIndexes[rowId]];
+  }
+
+  function sendBtnListing(button) {
+    const listing = JSON.parse(button.dataset.listing);
+    sendToExtension(listing);
   }
 
   function sendToExtension(listing) {
