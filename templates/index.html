@@ -136,26 +136,7 @@
     };
 
     console.log("[Crossposter] Sending message from Flask page:", payload);
-
-    function trySend() {
-      try {
-        chrome.runtime.sendMessage(payload, (response) => {
-          if (chrome.runtime.lastError) {
-            console.warn("[Crossposter] Background failed:", chrome.runtime.lastError.message);
-            setTimeout(() => {
-              console.log("[Crossposter] Retrying...");
-              trySend();
-            }, 500);
-          } else {
-            console.log("[Crossposter] Background response:", response);
-          }
-        });
-      } catch (err) {
-        console.error("[Crossposter] Failed to send message:", err);
-      }
-    }
-
-    trySend();
+    window.postMessage(payload, "*");
   }
 </script>
 
