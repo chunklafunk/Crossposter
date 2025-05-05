@@ -1,144 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>eBay Listings</title>
-  <style>
-    body {
-      font-family: Arial;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      background: #fff;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 12px;
-      border: 1px solid #ccc;
-      text-align: left;
-      vertical-align: top;
-    }
-    img {
-      max-width: 100px;
-      max-height: 100px;
-      border-radius: 6px;
-    }
-    .carousel {
-      position: relative;
-      display: inline-block;
-    }
-    .carousel img {
-      display: block;
-    }
-    .carousel button {
-      position: absolute;
-      top: 40%;
-      transform: translateY(-50%);
-      font-size: 1.2rem;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .prev-btn { left: 0; }
-    .next-btn { right: 0; }
-  </style>
+    <title>Crossposter</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="container mt-4">
 
-<h1>eBay Listings</h1>
-
-<form method="POST" enctype="multipart/form-data">
-  <label><strong>Upload CSV File:</strong></label>
-  <input type="file" name="csv" required />
-  <button type="submit">Upload</button>
-</form>
+<h2>Imported eBay Listings</h2>
 
 {% if listings %}
-<table>
-  <thead>
-    <tr>
-      <th>Photo</th>
-      <th>Title</th>
-      <th>Price</th>
-      <th>Condition</th>
-      <th>Quantity</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for listing in listings %}
-    <tr>
-      <td>
-        <div class="carousel" id="carousel-{{ loop.index }}">
-          {% if listing.images and listing.images|length > 0 %}
-            <img src="{{ listing.images[0] }}" id="img-{{ loop.index }}" />
-            {% if listing.images|length > 1 %}
-              <button class="prev-btn" onclick="navigate({{ loop.index }}, -1)">⟨</button>
-              <button class="next-btn" onclick="navigate({{ loop.index }}, 1)">⟩</button>
-            {% endif %}
-          {% else %}
-            <img src="https://via.placeholder.com/100?text=No+Image" />
-          {% endif %}
-        </div>
-      </td>
-      <td>{{ listing.Title or listing.title }}</td>
-      <td>{{ listing.Price or listing.price }}</td>
-      <td>{{ listing.Condition or listing.condition }}</td>
-      <td>{{ listing.Quantity or listing.quantity }}</td>
-      <td>
-        <button class="action-btn" type="button" onclick='sendBtnListing({{ listing | tojson }})'>
-          Post via Extension
-        </button>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+    <ul class="list-group mb-3">
+        {% for item in listings %}
+            <li class="list-group-item">
+                <strong>{{ item.title }}</strong><br>
+                Price: ${{ item.price }}<br>
+                <small>{{ item.description }}</small>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <form action="/generate_mercari_csv">
+        <button type="submit" class="btn btn-primary">Download Mercari Bulk CSV</button>
+    </form>
+{% else %}
+    <p>No listings found. Upload a CSV first.</p>
 {% endif %}
 
-<script>
-  let imageMap = {};
-  let lastListing = null;
-
-  {% for listing in listings %}
-    imageMap[{{ loop.index }}] = {{ listing.images|tojson }};
-  {% endfor %}
-
-  const currentIndexes = {};
-
-  function navigate(rowId, direction) {
-    if (!imageMap[rowId]) return;
-    currentIndexes[rowId] = (currentIndexes[rowId] || 0) + direction;
-    const total = imageMap[rowId].length;
-    if (currentIndexes[rowId] >= total) currentIndexes[rowId] = 0;
-    if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
-    const imgTag = document.getElementById('img-' + rowId);
-    imgTag.src = imageMap[rowId][currentIndexes[rowId]];
-  }
-
-  function sendBtnListing(listing) {
-    lastListing = listing;
-
-    const payload = {
-      type: "POST_LISTING_TO_MERCARI",
-      payload: {
-        title: listing.Title || listing.title || "",
-        price: listing["Current price"] || listing.price || "",
-        description: "Posted via Crossposter",
-        images: listing.images || []
-      }
-    };
-
-    console.log("[Crossposter] Sending message from Flask page:", payload);
-    window.postMessage(payload, "*");
-  }
-</script>
+<hr>
+<form method="post" action="/upload_csv" enctype="multipart/form-data">
+    <div class="mb-3">
+        <label for="file" class="form-label">Upload eBay CSV</label>
+        <input class="form-control" type="file" name="file" accept=".csv" required>
+    </div>
+    <button class="btn btn-success">Upload CSV</button>
+</form>
 
 </body>
 </html>
