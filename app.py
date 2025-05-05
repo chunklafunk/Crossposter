@@ -8,6 +8,7 @@ app.secret_key = 'your-secret-key'
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Load category mapping
 with open('category_mapper.json') as f:
     CATEGORY_MAP = json.load(f)
 
@@ -19,7 +20,7 @@ def index():
 @app.route('/upload_csv', methods=['POST'])
 def upload_csv():
     file = request.files['file']
-    if file.filename.endswith('.csv'):
+    if file and file.filename.endswith('.csv'):
         path = os.path.join(UPLOAD_FOLDER, file.filename)
         file.save(path)
 
@@ -31,7 +32,7 @@ def upload_csv():
             title = row.get('title', '')[:80]
             price = row.get('price', 9.99)
             description = row.get('description', '')[:1000]
-            images = row.get('image_urls', '').split(',')
+            images = str(row.get('image_urls', '')).split(',')
             category = row.get('category', 'default')
 
             listings.append({
@@ -57,7 +58,6 @@ def upload_csv():
             })
 
         session['listings'] = listings
-
         df_out = pd.DataFrame(output_data)
         df_out.to_csv(os.path.join(UPLOAD_FOLDER, 'mercari_output.csv'), index=False)
 
