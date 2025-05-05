@@ -1,71 +1,65 @@
-from flask import Flask, render_template, request, session, redirect
-import os
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import pandas as pd
-import requests
-import numpy as np
+import json
+import os
 
 app = Flask(__name__)
-app.secret_key = "secret"
+app.secret_key = 'your-secret-key'
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-RAILWAY_API_BASE = 'https://web-production-0646.up.railway.app/api/images'
+# Load eBay → Mercari category ID mapping
+with open('category_mapper.json') as f:
+    CATEGORY_MAP = json.load(f)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    listings = []
-    if request.method == 'POST':
-        file = request.files.get('csv')
-        if not file:
-            return "No file uploaded", 400
+    listings = session.get('listings', [])
+    return render_template('index.html', listings=listings)
 
-        filepath = os.path.join(UPLOAD_FOLDER, 'eBay-active-listings.csv')
-        file.save(filepath)
+@app.route('/upload_csv', methods=['POST'])
+def upload_csv():
+    file = request.files['file']
+    if file.filename.endswith('.csv'):
+        path = os.path.join(UPLOAD_FOLDER, file.filename)
+        file.save(path)
 
-        df = pd.read_csv(filepath)
+        df = pd.read_csv(path)
+        listings = []
 
-        # ✅ Force all invalid values to None
-        df = df.replace({np.nan: None, 'NaN': None, 'nan': None, '': None})
+        for _, row in df.iterrows():
+            listings.append({
+                'title': row.get('title', '')[:80],
+                'price': row.get('price', 9.99),
+                'description': row.get('description', ''),
+                'image_urls': row.get('image_urls', '').split(','),
+                'category': row.get('category', 'default')
+            })
 
-        listings = df.to_dict(orient='records')
+        session['listings'] = listings
+    return redirect(url_for('index'))
 
-        for listing in listings:
-            item_id = str(
-                listing.get('Item number') or
-                listing.get('Item ID') or
-                listing.get('ItemID') or
-                listing.get('item_id') or ''
-            ).strip()
-            print(f"\n📦 Item ID: {item_id}", flush=True)
+@app.route('/generate_mercari_csv')
+def generate_mercari_csv():
+    listings = session.get('listings', [])
+    output_data = []
 
-            images = []
-            if item_id:
-                try:
-                    api_url = f"{RAILWAY_API_BASE}?item={item_id}"
-                    print(f"🌐 Fetching from: {api_url}", flush=True)
-                    res = requests.get(api_url, timeout=20)
-                    print(f"📡 Status: {res.status_code}", flush=True)
-                    print(f"📄 Raw Response: {res.text[:300]}...", flush=True)
-                    res.raise_for_status()
-                    data = res.json()
-                    images = data.get('image_urls', [])
-                    print(f"🖼️ Found {len(images)} images", flush=True)
-                except Exception as e:
-                    print(f"❌ Error for {item_id}: {e}", flush=True)
-            else:
-                print("⚠️ No item ID found in this row.", flush=True)
+    for item in listings:
+        output_data.append({
+            "name": item.get('title', '')[:80],
+            "price": item.get('price', 9.99),
+            "description": item.get('description', '')[:1000],
+            "item_condition_name": "Good",
+            "image_urls": ",".join(item.get('image_urls', [])[:12]),
+            "brand_id": "",
+            "category_id": CATEGORY_MAP.get(item.get('category', 'default'), '9999'),
+            "category_size_group_id": "",
+            "size_id": "",
+            "shipping_payer_name": "Seller",
+            "shipping_method": "Standard"
+        })
 
-            listing['images'] = images
-
-    return render_template('index.html', listings=listings, mercari_linked=session.get('mercari_linked', False))
-
-@app.route('/linked-accounts', methods=['GET', 'POST'])
-def linked_accounts():
-    if request.method == 'POST':
-        session['mercari_linked'] = True
-        return redirect('/')
-    return "<h2>✅ Mercari is linked</h2><br><a href='/'>Back</a>"
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8000))
-    app.run(host='0.0.0.0', port=port)
+    df = pd.DataFrame(output_data)
+    output_path = os.path.join(UPLOAD_FOLDER, 'mercari_output.csv')
+    df.to_csv(output_path, index=False)
+    return send_file(output_path, as_attachment=True)
