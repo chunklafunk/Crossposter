@@ -47,6 +47,15 @@
     }
     .prev-btn { left: 0; }
     .next-btn { right: 0; }
+    .download-link {
+      margin-top: 15px;
+      display: inline-block;
+      background: #4CAF50;
+      color: white;
+      padding: 10px 16px;
+      text-decoration: none;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -58,6 +67,10 @@
   <input type="file" name="csv" required />
   <button type="submit">Upload</button>
 </form>
+
+{% if mercari_csv %}
+  <a href="/download-mercari-csv" class="download-link">Download Mercari CSV</a>
+{% endif %}
 
 {% if listings %}
 <table>
