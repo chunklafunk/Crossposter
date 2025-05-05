@@ -68,7 +68,6 @@
       <th>Price</th>
       <th>Condition</th>
       <th>Quantity</th>
-      <th>Action</th>
     </tr>
   </thead>
   <tbody>
@@ -91,11 +90,6 @@
       <td>{{ listing.Price or listing.price }}</td>
       <td>{{ listing.Condition or listing.condition }}</td>
       <td>{{ listing.Quantity or listing.quantity }}</td>
-      <td>
-        <button class="action-btn" type="button" onclick='sendBtnListing({{ listing | tojson }})'>
-          Post via Extension
-        </button>
-      </td>
     </tr>
     {% endfor %}
   </tbody>
@@ -103,15 +97,12 @@
 {% endif %}
 
 <script>
-  let imageMap = {};
-  let lastListing = null;
-
+  const imageMap = {};
   {% for listing in listings %}
     imageMap[{{ loop.index }}] = {{ listing.images|tojson }};
   {% endfor %}
 
   const currentIndexes = {};
-
   function navigate(rowId, direction) {
     if (!imageMap[rowId]) return;
     currentIndexes[rowId] = (currentIndexes[rowId] || 0) + direction;
@@ -120,23 +111,6 @@
     if (currentIndexes[rowId] < 0) currentIndexes[rowId] = total - 1;
     const imgTag = document.getElementById('img-' + rowId);
     imgTag.src = imageMap[rowId][currentIndexes[rowId]];
-  }
-
-  function sendBtnListing(listing) {
-    lastListing = listing;
-
-    const payload = {
-      type: "POST_LISTING_TO_MERCARI",
-      payload: {
-        title: listing.Title || listing.title || "",
-        price: listing["Current price"] || listing.price || "",
-        description: "Posted via Crossposter",
-        images: listing.images || []
-      }
-    };
-
-    console.log("[Crossposter] Sending message from Flask page:", payload);
-    window.postMessage(payload, "*");
   }
 </script>
 
