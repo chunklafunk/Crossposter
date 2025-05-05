@@ -3,18 +3,10 @@
 <head>
     <title>Crossposter</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script>
-    function sendToExtension() {
-        window.postMessage({
-            type: 'MERCARI_UPLOAD_TRIGGER',
-            csvUrl: '{{ url_for("download_mercari_csv") }}'
-        }, '*');
-    }
-    </script>
 </head>
 <body class="container mt-4">
 
-<h2>Imported Listings</h2>
+<h2>Imported eBay Listings</h2>
 
 {% if listings %}
     {% for item in listings %}
@@ -22,6 +14,8 @@
         <div class="card-body">
             <h5 class="card-title">{{ item.title }}</h5>
             <p class="card-text">{{ item.description }}</p>
+            <p class="card-text text-muted">${{ item.price }}</p>
+
             <div id="carousel{{ loop.index }}" class="carousel slide" data-bs-ride="carousel">
                 <div class="carousel-inner">
                     {% for img in item.image_urls %}
@@ -40,13 +34,8 @@
         </div>
     </div>
     {% endfor %}
-
-    <div class="d-flex gap-3 mb-5">
-        <a href="{{ url_for('download_mercari_csv') }}" class="btn btn-primary">Download Mercari CSV</a>
-        <button onclick="sendToExtension()" class="btn btn-success">Upload to Mercari</button>
-    </div>
 {% else %}
-    <p>No listings found. Upload a CSV.</p>
+    <p>No listings yet. Upload a CSV to begin.</p>
 {% endif %}
 
 <hr>
@@ -55,7 +44,7 @@
         <label for="file" class="form-label">Upload eBay CSV</label>
         <input class="form-control" type="file" name="file" accept=".csv" required>
     </div>
-    <button class="btn btn-success">Upload CSV</button>
+    <button class="btn btn-success">Upload</button>
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
