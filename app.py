@@ -2,9 +2,10 @@ from flask import Flask, render_template, request, session, redirect
 import os
 import pandas as pd
 import requests
+import numpy as np
 
 app = Flask(__name__)
-app.secret_key = "secret"  # Needed for session tracking
+app.secret_key = "secret"
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -22,7 +23,10 @@ def index():
         file.save(filepath)
 
         df = pd.read_csv(filepath)
-        df = df.where(pd.notnull(df), None)  # ✅ Replace NaN/NaT with None
+
+        # ✅ Force all invalid values to None
+        df = df.replace({np.nan: None, 'NaN': None, 'nan': None, '': None})
+
         listings = df.to_dict(orient='records')
 
         for listing in listings:
